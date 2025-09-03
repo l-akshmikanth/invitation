@@ -31,7 +31,6 @@
   /* ----------------------------- Constants ----------------------------- */
   /** Journey timeline data */
   const JOURNEY_DATA = [
-    { id:0, title:'Classmates', date:'', description:'Hardly spoke; parallel tracks', status:'PARALLEL' },
     { id:1, title:'Families Connect', date:'01 Aug 2025 – 2:00 PM', description:"Groom’s family visits Bride’s home", status:'ACKNOWLEDGED' },
     { id:2, title:'Return Visit', date:'15 Aug 2025 – 2:00 PM', description:'Bride’s family visits Groom’s home', status:'SYNCHRONIZED' },
     { id:3, title:'First Outing', date:'31 Aug 2025', description:'A full day discovering shared wavelength', status:'MERGING' },

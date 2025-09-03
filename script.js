@@ -47,7 +47,6 @@
     'venue': { desc: 'Show venue details' },
     'status': { desc: 'Show remaining time (compact)' },
     'journey': { desc: 'List journey milestones' },
-    'theme': { desc: 'List color tokens' }
   };
 
   const MARRIAGE_TEXT = 'Marriage • 8 March 2026';
@@ -70,6 +69,7 @@
   let statusInterval = null;
   let celebrationModeIndex = 0; // 0 confetti, 1 petals alternating
   let sectionCelebrated = new WeakSet();
+  let celebrationsEnabled = true; // user toggle
 
   // Terminal state
   let terminalOutputEl, terminalInputEl;
@@ -88,13 +88,59 @@
   function init() {
     initCountdown();
     initStatusLine();
-  initJourney();
+    initJourney();
     initTerminal();
     initModal();
     initScrollReveals();
     initScrollCelebrations();
     applyReducedMotionFallbacks();
     setCurrentYear();
+  initPostActions();
+  initCelebrationToggle();
+  initPlayfulHoverSparkles();
+  initBloomReveal();
+  }
+
+  function initPostActions(){
+    const icsBtn = document.getElementById('btn-ics');
+    const shareBtn = document.getElementById('btn-share');
+    if(icsBtn) icsBtn.addEventListener('click', downloadICS);
+    if(shareBtn) shareBtn.addEventListener('click', shareInvite);
+  }
+
+  function initCelebrationToggle(){
+    const toggle = document.getElementById('toggleCelebrations');
+    if(!toggle) return;
+    toggle.addEventListener('click', ()=> {
+      celebrationsEnabled = !celebrationsEnabled;
+      toggle.setAttribute('aria-pressed', celebrationsEnabled ? 'true':'false');
+      toggle.textContent = celebrationsEnabled ? 'Disable Celebrations' : 'Enable Celebrations';
+      if(celebrationsEnabled){
+        // Re-initialize scroll observer so further sections can trigger again
+        sectionCelebrated = new WeakSet();
+        celebrationModeIndex = 0;
+        initScrollCelebrations();
+        triggerCelebration('confetti');
+      }
+    });
+  }
+
+  function initPlayfulHoverSparkles(){
+    const buttons = document.querySelectorAll('.action-btn');
+    buttons.forEach(btn => {
+      const spark = document.createElement('span');
+      spark.className='sparkle';
+      btn.appendChild(spark);
+      let timer=null;
+      btn.addEventListener('pointerenter', ()=> {
+        if(reduceMotion) return;
+        spark.style.left = (15 + Math.random()*70) + '%';
+        spark.style.top = (15 + Math.random()*70) + '%';
+        btn.classList.add('sparkle-active');
+        clearTimeout(timer);
+        timer=setTimeout(()=> btn.classList.remove('sparkle-active'), 900);
+      });
+    });
   }
 
   function setCurrentYear(){
@@ -119,7 +165,11 @@
     if(!container) return;
     if(diff <= 0) {
       clearInterval(countdownInterval);
-      container.innerHTML = "<p class='expired'>It’s Engagement Time! 🎉</p>";
+      if(!container.dataset.expired){
+        container.dataset.expired = 'true';
+        container.innerHTML = "<p class='expired'>It’s Engagement Time! 🎉</p>";
+        showPostActions();
+      }
       return;
     }
     const secondsTotal = Math.floor(diff / 1000);
@@ -210,7 +260,8 @@
     if(reduceMotion) return; // keep static first line
     statusInterval = setInterval(() => {
       statusIndex = (statusIndex + 1) % STATUS_LINES.length;
-      statusEl.textContent = STATUS_LINES[statusIndex];
+  const emoji = ['💫','✨','🎉','🧡','🌟','🥁'][statusIndex % 6];
+  statusEl.textContent = `${emoji} ${STATUS_LINES[statusIndex]}`;
     }, 10000);
   }
 
@@ -294,6 +345,7 @@
       terminalOutputEl.innerHTML='';
       return;
     }
+
     if(input === 'marriage') {
       printLine(MARRIAGE_TEXT);
       openModal();
@@ -321,12 +373,10 @@
       JOURNEY_DATA.forEach(j=> printLine(`#${j.id} ${j.title} -> ${j.status}`));
       return;
     }
-    if(input === 'theme') {
-      printLine('--indigo #2F4B8A, --saffron #F5B642, --green #4B7F52, --off #FAF7F2, --dark #2B2B2E');
-      return;
-    }
+  if(input === 'ics') { downloadICS(); printLine('Downloading ICS...'); return; }
+  if(input === 'share') { shareInvite(); printLine('Sharing (or copied link)...'); return; }
     if(input === 'help') {
-      Object.entries(COMMANDS).forEach(([k,v])=> printLine(`${k} - ${v.desc}`));
+  Object.entries({ ...COMMANDS }).forEach(([k,v])=> printLine(`${k} - ${v.desc}`));
       return;
     }
     if(COMMANDS[input]) { // fallback for defined non-handled alias (none extra now)
@@ -334,6 +384,40 @@
       return;
     }
     printLine("command not found — try 'help'");
+  }
+
+  /* ---- Post-countdown & sharing utilities ---- */
+  function showPostActions(){
+    const box = document.getElementById('post-actions');
+    if(box){ box.hidden = false; requestAnimationFrame(()=> box.classList.add('visible')); }
+  }
+
+  function generateICS(){
+    const start = new Date(COUNTDOWN_TARGET);
+    const end = new Date(start.getTime() + 2*60*60*1000);
+    const fmt = dt => dt.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+    const uid = 'engagement-'+COUNTDOWN_TARGET+'@invite.local';
+    return `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Engagement Invite//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${fmt(new Date())}\nDTSTART:${fmt(start)}\nDTEND:${fmt(end)}\nSUMMARY:Engagement & Celebration\nDESCRIPTION:Join us as we begin a lifetime journey together.\nLOCATION:Sampradaya Convention Hall\\, Near Pandavapura Railway Station\nEND:VEVENT\nEND:VCALENDAR`;
+  }
+
+  function downloadICS(){
+    const data = generateICS();
+    const blob = new Blob([data], {type:'text/calendar'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'engagement-invite.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 0);
+  }
+
+  function shareInvite(){
+    const shareData = { title:'Engagement Invitation', text:'Join us to celebrate our engagement!', url:location.href };
+    if(navigator.share){
+      navigator.share(shareData).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(shareData.url);
+      printLine('Invite link copied to clipboard ✅');
+    }
   }
 
   /** Print a line to terminal output (with timestamp) */
@@ -442,6 +526,7 @@
   /* ----------------------------- Celebrations ----------------------------- */
   function initScrollCelebrations() {
     if(reduceMotion) return;
+  if(!celebrationsEnabled) return;
   const sections = ['hero','about','details','journey','terminal-section','gallery','footer']
       .map(id=> document.getElementById(id)).filter(Boolean);
     if(!('IntersectionObserver' in window)) return;
@@ -472,42 +557,98 @@
   /** Trigger a celebration burst */
   function triggerCelebration(mode) {
     if(reduceMotion) return;
-    createParticles(mode, mode==='confetti'? 40: 30);
+  if(!celebrationsEnabled) return;
+  const base = mode==='confetti'? 80: 60; // more particles for visibility
+  createParticles(mode, base, { slow:true });
+  if(Math.random()<0.5) createParticles('spark', 18, { slow:true });
+  if(mode==='confetti' && Math.random()<0.45) createParticles('ribbon', 16, { slow:true });
   }
 
   /** Create particle nodes */
-  function createParticles(mode,count) {
+  function createParticles(mode,count, opts={}) {
     const layer = document.getElementById('celebrations-layer');
     if(!layer) return;
     const frag = document.createDocumentFragment();
     const colors = ['var(--indigo)','var(--saffron)','var(--green)','var(--white)'];
     for(let i=0;i<count;i++) {
       const span = document.createElement('span');
-      span.className = 'particle ' + (mode==='confetti'? 'confetti':'petal');
-      const size = mode==='confetti'? (6 + Math.random()*10) : (10 + Math.random()*14);
-      span.style.width = size+'px';
-      span.style.height = (mode==='confetti'? (4 + Math.random()*8): (size * (0.6+Math.random()*0.4))) + 'px';
-      if(mode==='confetti') span.style.background = colors[i%colors.length]; else span.style.background = 'var(--petal)';
+      let cls;
+      if(mode==='spark') cls='spark';
+      else if(mode==='ribbon') cls='ribbon';
+      else cls = (mode==='confetti'? 'confetti':'petal');
+      span.className = 'particle ' + cls;
+      let size;
+      if(cls==='confetti') size = 10 + Math.random()*16;
+      else if(cls==='petal') size = 18 + Math.random()*20;
+      else if(cls==='ribbon') size = 14 + Math.random()*24;
+      else size = 10 + Math.random()*10; // spark
+      span.style.width = (cls==='ribbon'? size*1.6 : size)+'px';
+      span.style.height = (cls==='confetti'? (6 + Math.random()*12): cls==='petal'? (size * (0.55+Math.random()*0.35)) : cls==='ribbon'? (8+Math.random()*6): size)+'px';
+      if(cls==='confetti' || cls==='ribbon') span.style.background = colors[i%colors.length];
+      if(cls==='petal') {
+        const petalColors = ['#f2d9a6','#f4cfa0','#f8e2bb','#f6d3a8','#efd1b2'];
+        const base = petalColors[Math.floor(Math.random()*petalColors.length)];
+        span.style.background = `radial-gradient(circle at 30% 35%, #fff8, ${base})`;
+      }
       const startX = Math.random()*100; // vw
       span.style.left = startX + 'vw';
       span.style.top = '-10px';
-      const duration = 1000 + Math.random()*600;
-      const driftX = (Math.random()*40 - 20);
-      const rotate = Math.random()*720;
-      const translateY = 100 + Math.random()*60;
-      span.style.transition = `transform ${duration}ms ease-out, opacity ${duration}ms linear`;
-      span.style.transform = `translate(${driftX}vw, ${translateY}vh) rotate(${rotate}deg)`;
+      const slowFactor = opts.slow ? 2.2 : 1;
+      const duration = (1600 + Math.random()*1400) * slowFactor;
+      const driftX = (Math.random()*60 - 30);
+      const rotate = cls==='spark'? 0 : Math.random()*1080;
+      const translateY = 105 + Math.random()*85;
+      span.style.willChange = 'transform, opacity';
+      span.style.transition = `transform ${duration}ms cubic-bezier(.22,.7,.3,1), opacity ${duration}ms linear`;
+      // Distinct initial state (no translation) so transition animates fall
+      span.style.transform = `translate(0,0) rotate(0deg)`;
       span.style.opacity = '0';
-      // Start state
-      requestAnimationFrame(()=> {
-        span.style.opacity = '1';
-        span.style.transform = `translate(${driftX}vw, ${translateY}vh) rotate(${rotate}deg)`;
-      });
-      setTimeout(()=> { span.style.opacity='0'; }, duration*0.7);
-      setTimeout(()=> { span.remove(); }, duration + 400);
+      const delay = Math.random()*300; // gentle stagger
+      setTimeout(()=> {
+        requestAnimationFrame(()=> {
+          span.style.opacity = '1';
+          // add subtle horizontal sway using CSS variable via multiple transforms
+          span.style.transform = `translate(${driftX}vw, ${translateY}vh) rotate(${rotate}deg)`;
+        });
+      }, delay);
+      setTimeout(()=> { span.style.opacity='0'; }, duration*0.85);
+      setTimeout(()=> { span.remove(); }, duration + 800);
       frag.appendChild(span);
     }
     layer.appendChild(frag);
+  }
+
+  /* ----------------------------- Bloom Name Reveal ----------------------------- */
+  function initBloomReveal(){
+    const wrap = document.getElementById('bloom-reveal');
+    if(!wrap) return;
+    if(reduceMotion){
+      wrap.classList.add('revealed');
+  wrap.setAttribute('aria-hidden','false');
+      return;
+    }
+    const PETAL_COUNT = 42;
+    const frag = document.createDocumentFragment();
+    for(let i=0;i<PETAL_COUNT;i++){
+      const p = document.createElement('span');
+      p.className='bloom-petal';
+      const angle = (Math.PI*2) * (i/PETAL_COUNT);
+      const radius = 60 + Math.random()*160; // px spread
+      const dx = Math.cos(angle) * radius;
+      const dy = Math.sin(angle) * radius * 0.55; // squash vertically a bit
+      p.style.setProperty('--dx', dx+'px');
+      p.style.setProperty('--dy', dy+'px');
+      p.style.setProperty('--rot', (Math.random()*240)+'deg');
+      p.style.animationDelay = (Math.random()*0.9)+'s';
+      frag.appendChild(p);
+    }
+    wrap.appendChild(frag);
+    // reveal names after short delay
+  setTimeout(()=> { wrap.classList.add('revealed'); wrap.setAttribute('aria-hidden','false'); }, 400);
+    // cleanup petals after animation (~5.5s)
+    setTimeout(()=> {
+      wrap.querySelectorAll('.bloom-petal').forEach(p=> p.remove());
+    }, 6000);
   }
 
   /* ----------------------------- Reduced Motion ----------------------------- */

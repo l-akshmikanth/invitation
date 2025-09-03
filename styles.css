@@ -1,3 +1,4 @@
+#bloom-reveal.revealed {position:relative; top:0; transform:none;}
 /* =============================================================
    Engagement Microsite Styles
    Lakshmikanth & Maanya
@@ -41,6 +42,22 @@ p {max-width:70ch;}
 #hero {min-height:100dvh; display:grid; place-items:center; text-align:center; position:relative; padding:4rem 1.25rem 3rem; background:var(--gradient-hero); color:var(--off); overflow:hidden;}
 #hero:before {content:""; position:absolute; inset:0; background:linear-gradient( rgba(0,0,0,.15), rgba(47,75,138,.5) ); mix-blend-mode:overlay; pointer-events:none;}
 .hero-inner {position:relative; z-index:1; max-width:960px;}
+.hero-inner.hero-has-bloom {padding-top:5.5rem;}
+/* Bloom names now sole heading */
+#bloom-reveal {z-index:8; position:absolute; top:8%; left:50%; transform:translateX(-50%); width:100%; pointer-events:none;}
+#bloom-reveal .bloom-names {z-index:9; margin:0 auto 1.5rem; position:relative;}
+#countdown {position:relative; z-index:3; margin-top:2.5rem;}
+
+/* Decorative linked rings */
+.hero-rings {position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:0; opacity:.55;}
+.hero-rings .rings-svg {width: clamp(240px,55vw,520px); height:auto; animation:floatRings 16s ease-in-out infinite;}
+.ring-pair .ring-a, .ring-pair .ring-b {stroke-linecap:round;}
+@keyframes floatRings {0%,100%{transform:translateY(0);} 50%{transform:translateY(14px);} }
+
+@media (max-width:600px){
+  .hero-primary-name {font-size:1.9rem;}
+  .hero-rings {opacity:.42;}
+}
 .hero-tagline {font-weight:500; margin-top:.5rem;}
 
 /* Countdown */
@@ -69,6 +86,30 @@ p {max-width:70ch;}
 @keyframes pulseGlow {0%{box-shadow:0 0 0 0 rgba(245,182,66,.9);} 100%{box-shadow:0 0 0 20px rgba(245,182,66,0);} }
 
 .no-js {font-size:.9rem; margin-top:1rem;}
+
+/* Post-countdown actions */
+.post-actions {margin-top:1.4rem; display:flex; gap:.85rem; flex-wrap:wrap; justify-content:center; opacity:0; transform:translateY(6px); transition:opacity .5s ease, transform .5s ease;}
+.post-actions.visible {opacity:1; transform:translateY(0);} 
+.action-btn {--btn-accent:var(--saffron); --btn-accent-alt:var(--indigo); position:relative; background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.75)); border:1px solid rgba(47,75,138,.25); padding:.7rem 1.05rem; border-radius:calc(var(--radius-sm) + 2px); font-size:.78rem; font-weight:600; letter-spacing:.65px; cursor:pointer; display:inline-flex; align-items:center; gap:.45rem; box-shadow:0 3px 10px -4px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.25) inset; color:#1d2940; text-shadow:0 1px 0 rgba(255,255,255,.5); backdrop-filter:blur(4px);}
+.action-btn:before {content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(120deg,var(--indigo),var(--saffron)); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; opacity:.85; pointer-events:none;}
+.action-btn:hover {background:linear-gradient(135deg, rgba(255,255,255,1), rgba(255,255,255,.85)); box-shadow:0 4px 14px -4px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.4) inset;}
+.action-btn:focus {outline:none; box-shadow:0 0 0 2px rgba(255,255,255,.9), 0 0 0 5px rgba(245,182,66,.55);} 
+.action-btn:active {transform:translateY(1px); box-shadow:0 2px 6px -3px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.4) inset;} 
+.action-calendar {--btn-accent:var(--saffron);}
+.action-share {--btn-accent:var(--indigo);} 
+.action-calendar {background:linear-gradient(135deg,rgba(245,182,66,.18),rgba(245,182,66,.06)), linear-gradient(135deg,#fff,#f4efe3);} 
+.action-share {background:linear-gradient(135deg,rgba(47,75,138,.18),rgba(47,75,138,.06)), linear-gradient(135deg,#fff,#eef2fb);} 
+.action-calendar:hover {background:linear-gradient(135deg,rgba(245,182,66,.22),rgba(245,182,66,.08)), linear-gradient(135deg,#fff,#f9f4e9);} 
+.action-share:hover {background:linear-gradient(135deg,rgba(47,75,138,.22),rgba(47,75,138,.08)), linear-gradient(135deg,#fff,#f2f5fc);} 
+.action-btn:active {filter:brightness(.97);} 
+@media (prefers-color-scheme: dark){
+  .action-btn {color:#f2f6ff; background:linear-gradient(135deg, rgba(31,41,54,.85), rgba(21,28,40,.85)); border:1px solid rgba(255,255,255,.1); text-shadow:none;}
+  .action-btn:before {background:linear-gradient(120deg,var(--saffron),var(--indigo)); opacity:.6;}
+  .action-calendar {background:linear-gradient(135deg,rgba(245,182,66,.22),rgba(245,182,66,.08)), linear-gradient(135deg,#172132,#101826);} 
+  .action-share {background:linear-gradient(135deg,rgba(47,75,138,.28),rgba(47,75,138,.1)), linear-gradient(135deg,#172132,#101826);} 
+  .action-calendar:hover {background:linear-gradient(135deg,rgba(245,182,66,.3),rgba(245,182,66,.1)), linear-gradient(135deg,#1c2739,#101826);} 
+  .action-share:hover {background:linear-gradient(135deg,rgba(47,75,138,.35),rgba(47,75,138,.12)), linear-gradient(135deg,#1c2739,#101826);} 
+}
 
 /* Sections */
 section {padding:4.5rem 1.25rem; position:relative;}
@@ -139,12 +180,30 @@ section {padding:4.5rem 1.25rem; position:relative;}
 .footer-inner .fineprint {margin:0; font-size:.7rem; letter-spacing:.5px; opacity:.75;}
 .replay-btn {background:var(--saffron); border:none; color:#2b240e; font-weight:600; letter-spacing:.5px; padding:.65rem 1rem; border-radius:2rem; cursor:pointer; font-size:.75rem; box-shadow:0 2px 6px -2px rgba(0,0,0,.4);} 
 .replay-btn:focus {outline:none; box-shadow:var(--focus-ring);} 
+.replay-btn.alt {background:var(--indigo); color:#fff;}
+.replay-btn.alt[aria-pressed="false"] {background:#5b7ddc;}
+.replay-btn.alt[aria-pressed="true"] {background:var(--indigo);} 
 
 /* Celebrations Layer */
 #celebrations-layer {position:fixed; inset:0; pointer-events:none; z-index:40; overflow:hidden; max-width:100%;}
 .particle {position:absolute; width:12px; height:12px; top:0; left:0; will-change:transform, opacity;}
 .particle.confetti {border-radius:2px;}
 .particle.petal {border-radius:50% 50% 45% 55% / 55% 45% 55% 45%; background:var(--petal);}
+.particle.spark {border-radius:50%; box-shadow:0 0 0 2px #fff,0 0 10px 2px rgba(255,255,255,.8); background:radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,.2)); mix-blend-mode:screen;}
+.particle.ribbon {width:16px; height:6px; border-radius:3px;}
+
+/* Bloom name reveal */
+#bloom-reveal {position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:0;}
+#bloom-reveal .bloom-names {position:relative; font-family:var(--font-accent); font-size:clamp(2.2rem,6vw,3.6rem); font-weight:600; letter-spacing:.5px; opacity:0; transition:opacity 1.8s ease 1.2s; background:linear-gradient(90deg,#fff 0%, #ffe7c2 60%, #fff 100%); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 4px 14px rgba(0,0,0,.25));}
+#bloom-reveal.revealed .bloom-names {opacity:1;}
+.bloom-petal {position:absolute; top:50%; left:50%; width:28px; height:40px; margin:-20px -14px; background:radial-gradient(circle at 30% 30%, #fff8, #f7d2aa); border-radius:52% 48% 50% 50% / 60% 55% 45% 40%; opacity:0; transform:scale(.2) translate(var(--dx,0), var(--dy,0)) rotate(var(--rot,0deg)); will-change:transform, opacity; animation:bloomPetal 4.8s ease forwards;}
+@keyframes bloomPetal {0%{opacity:0; transform:scale(.2) translate(0,0) rotate(var(--rot));} 12%{opacity:1;} 55%{opacity:1;} 100%{opacity:0; transform:scale(1.15) translate(var(--dx), var(--dy)) rotate(calc(var(--rot) + 120deg));}}
+
+/* Action button playful hover sparkles */
+.action-btn{position:relative; overflow:hidden;}
+.action-btn .sparkle {position:absolute; width:6px; height:6px; background:radial-gradient(circle,#fff 0%, rgba(255,255,255,0) 70%); top:50%; left:50%; pointer-events:none; opacity:0; transform:translate(-50%,-50%) scale(.2);}
+.action-btn.sparkle-active .sparkle {animation:sparklePop .9s ease forwards;}
+@keyframes sparklePop {0%{opacity:0; transform:translate(-50%,-50%) scale(.2);} 20%{opacity:1; transform:translate(-50%,-50%) scale(1);} 100%{opacity:0; transform:translate(-50%,-50%) scale(.2);} }
 
 /* Scroll reveal */
 .animate {opacity:0; transform:translateY(30px); transition:opacity .9s ease, transform .9s ease;}

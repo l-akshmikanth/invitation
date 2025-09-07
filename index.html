@@ -13,6 +13,24 @@
 	<link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+	<!-- Intro Overlay (Terminal Prompt Simulation) -->
+	<div id="intro-overlay" class="intro-overlay" role="dialog" aria-modal="true" aria-label="Initializing names" data-state="idle">
+		<div class="intro-terminal" role="document">
+			<div class="intro-header">
+				<span class="dot red" aria-hidden="true"></span>
+				<span class="dot amber" aria-hidden="true"></span>
+				<span class="dot green" aria-hidden="true"></span>
+				<span class="intro-hint" id="intro-hint">Click or wait to start</span>
+				<button type="button" id="intro-skip" class="intro-skip" aria-label="Skip intro">Skip</button>
+			</div>
+			<div class="intro-body" aria-live="polite" aria-atomic="false">
+				<pre class="intro-line static">&gt; Initializing names...</pre>
+				<pre class="intro-line static">&gt; LakshMaan </pre>
+				<pre class="intro-line typing" id="intro-current" data-step="0"><span class="intro-cursor" aria-hidden="true">█</span></pre>
+				<pre class="intro-line done final-message" id="intro-final" hidden></pre>
+			</div>
+		</div>
+	</div>
 	<div id="celebrations-layer" aria-hidden="true"></div>
 	<header id="hero" class="animate" role="banner">
 		<div class="hero-inner hero-has-bloom">
@@ -43,7 +61,7 @@
 			</div>
 			<p class="hero-tagline">Engagement • 13 Oct 2025 • 12:30 PM IST • Tradition × Technology in Harmony</p>
 			<div id="countdown" role="group" aria-label="Countdown to engagement" class="countdown" data-target="2025-10-13T12:30:00+05:30">
-				<div class="countdown-status" id="countdown-status" aria-live="polite">Synchronizing hearts...</div>
+				<div class="countdown-status" id="countdown-status" aria-live="polite">❤️ Synchronizing hearts...</div>
 				<div class="countdown-grid">
 					<!-- Days -->
 					<div class="time-unit" data-unit="days">
@@ -126,10 +144,17 @@
 			<h2 id="terminal-title">&lt;Terminal /&gt;</h2>
 				<p class="terminal-hint">Type <code>help</code> to view available commands.</p>
 				<div id="terminal" class="terminal" aria-live="off">
+					<div class="terminal-header" aria-hidden="true">
+						<span class="dot red"></span>
+						<span class="dot amber"></span>
+						<span class="dot green"></span>
+						<span class="terminal-title">engagement-shell</span>
+					</div>
 					<div id="terminal-output" role="log" aria-live="polite" aria-atomic="false"></div>
 					<div class="terminal-input-row">
 						<label for="terminal-input" class="visually-hidden">Command input</label>
 						<input id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="Enter command..." />
+						<button id="terminal-send" type="button" class="terminal-send" aria-label="Run command">Send</button>
 					</div>
 				</div>
 			</div>
@@ -137,13 +162,14 @@
 		<section id="gallery" class="animate" aria-labelledby="gallery-title">
 			<div class="section-inner">
 			<h2 id="gallery-title">&lt;Gallery /&gt;</h2>
-				<div class="gallery-grid">
-					<figure class="placeholder-img">
-						<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Crect width='100%25' height='100%25' fill='%23f2d9a6'/%3E%3Ctext x='50%25' y='50%25' font-size='28' font-family='Inter' text-anchor='middle' fill='%232F4B8A'%3EPhoto Placeholder%3C/text%3E%3C/svg%3E" alt="TODO: Couple photo" loading="lazy" />
-						<figcaption>More photos will be shared after the event.</figcaption>
-					</figure>
+			<p class="gallery-invite">Had a <span class="gi-accent">spark</span> from the day? <a href="https://photos.app.goo.gl/3jMDWrG6tHcwZeCG9" target="_blank" rel="noopener" class="gallery-share-link" aria-label="Open shared album in new tab to add your photos">Share your moment ↗</a></p>
+			<div class="gallery-embed-wrapper">
+				<div class="pa-gallery-player-widget" style="width:100%;height:480px;display:none;" data-link="https://photos.app.goo.gl/3jMDWrG6tHcwZeCG9" data-title="Engagement" data-description="Shared album · Tap to view!">
+					<object data="https://lh3.googleusercontent.com/pw/AP1GczN2SBXkscZDmMjpeB20-NIyAw03Iy6uKllVSeeKmcmhGbTzd7-kPataQ3cBplGnsWaLnbukXTWlW2G1c8rOOmbOtvYBk9twfCdsRlsMdN31D5wuuw=w1920-h1080"></object>
+					<object data="https://lh3.googleusercontent.com/pw/AP1GczMhSwNcELNhJkkIJJvCBx52Z68STzHPjB_zaw1DKq62v3ws9X8k-2yc66FyIbQimHnfdUKBupcNvDVCNGJQF95vSkbjiWs-Ja70RoNlhpf3NSocaQ=w1920-h1080"></object>
 				</div>
-				<!-- TODO: Add dynamic gallery after event -->
+			</div>
+			<script src="https://cdn.jsdelivr.net/npm/publicalbum@latest/embed-ui.min.js" async></script>
 			</div>
 		</section>
 	</main>
@@ -151,10 +177,7 @@
 		<div class="footer-inner">
 			<p class="fineprint">&copy; <span id="year"></span> Lakshmikanth &amp; Maanya • Crafted with tradition &amp; tech.</p>
 			<button id="replayCelebrations" type="button" class="replay-btn" aria-describedby="replay-desc">Replay Celebrations</button>
-			<button id="toggleCelebrations" type="button" class="replay-btn alt" aria-pressed="true" aria-describedby="toggle-desc">Disable Celebrations</button>
-			<span id="replay-desc" class="visually-hidden">Replays section celebration animations.</span>
-			<span id="toggle-desc" class="visually-hidden">Toggles decorative celebration animations on or off.</span>
-		</div>
+			<span id="replay-desc" class="visually-hidden">Replays section celebration animations.</span>		</div>
 	</footer>
 
 	<!-- Secret Modal -->

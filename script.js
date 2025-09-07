@@ -79,6 +79,8 @@
 
   // Modal state
   let modalEl, modalBackdrop, modalCloseBtn, lastFocusedBeforeModal = null;
+  let bloomReadyPending = false; // delay bloom until intro finishes
+  let bloomStarted = false;
 
   /* ----------------------------- Initialization ----------------------------- */
   document.addEventListener('DOMContentLoaded', init);
@@ -97,7 +99,12 @@
   initPostActions();
   initCelebrationToggle();
   initPlayfulHoverSparkles();
-  initBloomReveal();
+  // Delay bloom if intro overlay present
+  if(document.getElementById('intro-overlay')) {
+    bloomReadyPending = true;
+  } else {
+    initBloomReveal();
+  }
   }
 
   function initPostActions(){
@@ -291,9 +298,20 @@
   function initTerminal() {
     terminalOutputEl = document.getElementById('terminal-output');
     terminalInputEl = document.getElementById('terminal-input');
+    const sendBtn = document.getElementById('terminal-send');
     if(!terminalOutputEl || !terminalInputEl) return;
 
     terminalInputEl.addEventListener('keydown', onTerminalKey);
+    if(sendBtn){
+      sendBtn.addEventListener('click', () => {
+        const cmd = terminalInputEl.value.trim();
+        if(!cmd) { terminalInputEl.focus(); return; }
+        executeCommand(cmd);
+        addToHistory(cmd);
+        terminalInputEl.value='';
+        terminalInputEl.focus();
+      });
+    }
     printLine('Welcome to the engagement terminal. Type "help" to list commands.');
     // Do not focus immediately to avoid page scroll jump.
     // Focus only if hash explicitly targets terminal or user manually clicks inside.
@@ -619,6 +637,7 @@
 
   /* ----------------------------- Bloom Name Reveal ----------------------------- */
   function initBloomReveal(){
+  if(bloomStarted) return; bloomStarted = true;
     const wrap = document.getElementById('bloom-reveal');
     if(!wrap) return;
     if(reduceMotion){
@@ -648,6 +667,165 @@
     setTimeout(()=> {
       wrap.querySelectorAll('.bloom-petal').forEach(p=> p.remove());
     }, 6000);
+  }
+
+  /* ----------------------------- Intro Overlay Typing ----------------------------- */
+  document.addEventListener('DOMContentLoaded', initIntroOverlay);
+
+  function initIntroOverlay(){
+    const overlay = document.getElementById('intro-overlay');
+    if(!overlay) return;
+    const currentLine = document.getElementById('intro-current');
+    const finalLine = document.getElementById('intro-final');
+    const skipBtn = document.getElementById('intro-skip');
+    const hint = document.getElementById('intro-hint');
+    // Desired staged flow:
+    // 1. Show fused: LakshMaan
+    // 2. Type '+' to produce: Laksh+Maan (highlight +)
+    // 3. Fade that line, start new line where only segments 'ikanth ' then 'ya' are typed (gold) to form final: Lakshmikanth Maanya
+
+    const FINAL_TEXT = 'Lakshmikanth Maanya';
+    const finalMessage = 'Engagement sequence loaded ✅';
+    let started = false;
+    let stage = 0; // 0 initial, 1 plus typed pending next, 2 typing first segment, 3 typing second segment, 4 done
+    let timers = [];
+    let cancelled = false;
+    let ghost;
+
+    const autoTimer = setTimeout(() => start(), 3000);
+    timers.push(autoTimer);
+
+    function start(){
+      if(started) return; started = true; overlay.dataset.state='running'; if(hint) hint.style.visibility='hidden';
+      showInitial();
+      queue(()=> typePlus(), 650);
+    }
+
+    function showInitial(){
+      clearCurrent();
+      appendTextNode('LakshMaan');
+      ensureGhost();
+    }
+
+    function typePlus(){
+      if(cancelled) return;
+      stage = 1;
+      // Rebuild content splitting at insertion point after 'Laksh'
+      clearCurrent();
+      appendTextNode('Laksh');
+      const plusSpan = document.createElement('span');
+      plusSpan.className='added'; plusSpan.textContent='+'; currentLine.insertBefore(plusSpan, ghost);
+      appendTextNode('Maan');
+      // After short pause transition to new line typing
+      queue(()=> {
+        fadePreviousLine();
+        prepareFinalLineStructure();
+        typeSegment(firstSegChars, () => {
+          stage = 3;
+          typeSegment(secondSegChars, finishBuild);
+        });
+      }, 800);
+    }
+
+    // Prepare new line with static spans and empty typing targets
+    let prefixSpan, firstSegSpan, secondStaticSpan, secondTailSpan;
+    const firstSegment = 'ikanth ';
+    const secondTail = 'ya';
+    const firstSegChars = firstSegment.split('');
+    const secondSegChars = secondTail.split('');
+
+    function prepareFinalLineStructure(){
+      stage = 2;
+      clearCurrent();
+      prefixSpan = document.createElement('span'); prefixSpan.textContent='Lakshm'; currentLine.insertBefore(prefixSpan, ghost);
+      firstSegSpan = document.createElement('span'); firstSegSpan.className='seg seg-a'; currentLine.insertBefore(firstSegSpan, ghost);
+      secondStaticSpan = document.createElement('span'); secondStaticSpan.textContent='Maan'; currentLine.insertBefore(secondStaticSpan, ghost);
+      secondTailSpan = document.createElement('span'); secondTailSpan.className='seg seg-b'; currentLine.insertBefore(secondTailSpan, ghost);
+    }
+
+    function typeSegment(chars, done){
+      if(cancelled){ return; }
+      if(!chars.length){ done(); return; }
+      const ch = chars.shift();
+      const span = document.createElement('span'); span.className='added'; span.textContent = ch;
+      const targetContainer = stage === 2 || stage === 1 ? firstSegSpan : (stage === 3 ? secondTailSpan : firstSegSpan);
+      targetContainer.appendChild(span);
+      const delay = 55 + Math.random()*45;
+      queue(()=> typeSegment(chars, done), delay);
+    }
+
+    function finishBuild(){
+      stage = 4;
+      finish();
+    }
+
+    function finish(){
+      overlay.dataset.state='finished';
+      finalLine.hidden = false;
+      finalLine.textContent = finalMessage;
+      // Wait 3s before triggering bloom reveal, then fade overlay
+      queue(()=> {
+        if(bloomReadyPending) { initBloomReveal(); bloomReadyPending=false; }
+        overlay.classList.add('fade-out');
+        queue(()=> overlay.remove(), 700);
+      }, 3000);
+    }
+
+    function skipAll(){
+      if(cancelled) return;
+      cancelled = true;
+      timers.forEach(t=> clearTimeout(t));
+      fadePreviousLine();
+      clearCurrent();
+      appendTextNode(FINAL_TEXT);
+      finish();
+    }
+
+    function fadePreviousLine(){
+      const txt = getCurrentPlainText();
+      if(!txt) return;
+      const clone = document.createElement('pre');
+      clone.className='intro-line faded';
+      clone.textContent = txt;
+      currentLine.parentNode.insertBefore(clone, currentLine);
+    }
+
+    function getCurrentPlainText(){
+      return Array.from(currentLine.childNodes)
+        .filter(n=> !(n.classList && (n.classList.contains('intro-cursor') || n===ghost)))
+        .map(n=> n.textContent).join('');
+    }
+
+    function clearCurrent(){
+      Array.from(currentLine.childNodes).forEach(n=> {
+        if(n.classList && n.classList.contains('intro-cursor')) return;
+        if(n===ghost) return;
+        currentLine.removeChild(n);
+      });
+      ensureGhost();
+    }
+
+    function appendTextNode(str){
+      const tn = document.createTextNode(str);
+      currentLine.insertBefore(tn, ghost);
+    }
+
+    function ensureGhost(){
+      if(ghost) return; // only once
+      ghost = document.createElement('span');
+      ghost.textContent = FINAL_TEXT;
+      ghost.style.visibility='hidden';
+      ghost.style.position='absolute';
+      ghost.style.pointerEvents='none';
+      ghost.style.whiteSpace='pre';
+      currentLine.appendChild(ghost);
+    }
+
+    function queue(fn, ms){ const id = setTimeout(fn, ms); timers.push(id); return id; }
+
+    overlay.addEventListener('click', (e)=> { if(e.target === skipBtn) return; start(); });
+    skipBtn.addEventListener('click', (e)=> { e.stopPropagation(); skipAll(); });
+    document.addEventListener('keydown', (e)=> { if(e.key==='Escape' && overlay.dataset.state!=='finished'){ skipAll(); } });
   }
 
   /* ----------------------------- Reduced Motion ----------------------------- */
